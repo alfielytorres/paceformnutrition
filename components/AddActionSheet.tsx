@@ -29,29 +29,20 @@ export default function AddActionSheet({ visible, onClose }: AddActionSheetProps
     {
       icon: 'search-outline',
       label: 'Search food',
-      subtitle: 'Find from our database',
-      onPress: () => {
-        onClose();
-        router.push('/fuel/add-food');
-      },
+      subtitle: 'Find from our food database',
+      onPress: () => { onClose(); router.push('/fuel/add-food'); },
     },
     {
       icon: 'barcode-outline',
       label: 'Scan barcode',
       subtitle: 'Scan product packaging',
-      onPress: () => {
-        onClose();
-        router.push('/fuel/scan');
-      },
+      onPress: () => { onClose(); router.push('/fuel/scan'); },
     },
     {
       icon: 'create-outline',
-      label: 'Create food',
-      subtitle: 'Add a custom food entry',
-      onPress: () => {
-        onClose();
-        router.push('/fuel/custom-food');
-      },
+      label: 'Create custom food',
+      subtitle: 'Add a food not in the database',
+      onPress: () => { onClose(); router.push('/fuel/custom-food'); },
     },
   ];
 
@@ -68,7 +59,7 @@ export default function AddActionSheet({ visible, onClose }: AddActionSheetProps
           <TouchableWithoutFeedback>
             <View style={styles.sheet}>
               <View style={styles.handle} />
-              <Text style={styles.title}>Add to Fuel</Text>
+              <Text style={styles.title}>Log Food</Text>
               <View style={styles.actions}>
                 {actions.map((action, index) => (
                   <TouchableOpacity

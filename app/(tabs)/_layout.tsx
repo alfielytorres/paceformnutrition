@@ -9,17 +9,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const [showAddSheet, setShowAddSheet] = useState(false);
 
   const tabs = [
-    { name: 'index', label: 'Overview', icon: 'grid-outline', iconFocused: 'grid' },
-    { name: 'fuel', label: 'Fuel', icon: 'flame-outline', iconFocused: 'flame' },
+    { name: 'index', label: 'Daily', icon: 'today-outline', iconFocused: 'today' },
+    { name: 'fuel', label: 'Meals', icon: 'restaurant-outline', iconFocused: 'restaurant' },
     { name: 'add', label: '', icon: 'add', iconFocused: 'add' },
-    { name: 'strength', label: 'Strength', icon: 'barbell-outline', iconFocused: 'barbell' },
-    { name: 'health', label: 'Health', icon: 'heart-outline', iconFocused: 'heart' },
+    { name: 'log', label: 'History', icon: 'time-outline', iconFocused: 'time' },
+    { name: 'foods', label: 'Foods', icon: 'nutrition-outline', iconFocused: 'nutrition' },
   ];
 
   return (
     <>
       <View style={styles.tabBar}>
-        {tabs.map((tab, index) => {
+        {tabs.map((tab) => {
           if (tab.name === 'add') {
             return (
               <TouchableOpacity
@@ -40,11 +40,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             <TouchableOpacity
               key={tab.name}
               style={styles.tabItem}
-              onPress={() => {
-                if (route) {
-                  navigation.navigate(tab.name);
-                }
-              }}
+              onPress={() => { if (route) navigation.navigate(tab.name); }}
               activeOpacity={0.7}
             >
               <Ionicons
@@ -52,11 +48,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 size={22}
                 color={isFocused ? Colors.accent : Colors.textMuted}
               />
-              {tab.label ? (
-                <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
-                  {tab.label}
-                </Text>
-              ) : null}
+              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -110,15 +104,13 @@ export default function TabLayout() {
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
+      screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="fuel" />
       <Tabs.Screen name="add" options={{ href: null }} />
-      <Tabs.Screen name="strength" />
-      <Tabs.Screen name="health" />
+      <Tabs.Screen name="log" />
+      <Tabs.Screen name="foods" />
     </Tabs>
   );
 }
