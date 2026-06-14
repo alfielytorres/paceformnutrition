@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,64 +23,46 @@ export default function ScanScreen() {
   const meal = (params.meal as MealType) || 'breakfast';
   const date = params.date || getTodayDate();
 
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
 
-  // We use a manual approach since expo-camera/expo-barcode-scanner
-  // require native modules. Show a demo UI with a manual entry fallback.
-
-  const handleManualEntry = () => {
-    Alert.prompt(
-      'Enter Barcode',
-      'Type the barcode number to search:',
-      async (barcode) => {
-        if (!barcode) return;
-        setLoading(true);
-        try {
-          const food = await nutritionService.searchFoodByBarcode(barcode.trim());
-          if (food) {
-            router.replace({
-              pathname: '/fuel/confirm-food',
-              params: {
-                foodJson: JSON.stringify(food),
-                meal,
-                date,
-              },
-            });
-          } else {
-            Alert.alert(
-              'Not found',
-              'No food found for that barcode. Try searching manually.',
-              [
-                { text: 'Search', onPress: () => router.replace('/fuel/add-food') },
-                { text: 'OK', style: 'cancel' },
-              ]
-            );
-          }
-        } finally {
-          setLoading(false);
-        }
-      },
-      'plain-text'
-    );
-  };
-
-  const handleDemoScan = async () => {
-    // Demo: scan the GYG barcode
+  const handleManualSearch = async () => {
+    const barcode = barcodeInput.trim();
+    if (!barcode) return;
     setLoading(true);
-    setScanned(true);
     try {
-      const barcode = '9300601234567';
       const food = await nutritionService.searchFoodByBarcode(barcode);
       if (food) {
         router.replace({
           pathname: '/fuel/confirm-food',
-          params: {
-            foodJson: JSON.stringify(food),
-            meal,
-            date,
-          },
+          params: { foodJson: JSON.stringify(food), meal, date },
+        });
+      } else {
+        Alert.alert(
+          'No match',
+          'No food found for that barcode. Try searching manually.',
+          [
+            { text: 'Search', onPress: () => router.replace('/fuel/add-food') },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoScan = async () => {
+    setLoading(true);
+    setScanned(true);
+    try {
+      const food = await nutritionService.searchFoodByBarcode('9300601234567');
+      if (food) {
+        router.replace({
+          pathname: '/fuel/confirm-food',
+          params: { foodJson: JSON.stringify(food), meal, date },
         });
       } else {
         Alert.alert('Not found', 'No food found for that barcode.');
@@ -90,68 +75,115 @@ export default function ScanScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="close" size={22} color={Colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Scan Barcode</Text>
-        <TouchableOpacity
-          onPress={handleManualEntry}
-          style={styles.manualBtn}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.manualBtnText}>Manual</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Viewfinder area */}
-      <View style={styles.viewfinder}>
-        <View style={styles.viewfinderInner}>
-          {/* Corner brackets */}
-          <View style={[styles.corner, styles.topLeft]} />
-          <View style={[styles.corner, styles.topRight]} />
-          <View style={[styles.corner, styles.bottomLeft]} />
-          <View style={[styles.corner, styles.bottomRight]} />
-
-          {loading ? (
-            <ActivityIndicator size="large" color={Colors.accent} />
-          ) : (
-            <View style={styles.scannerIcon}>
-              <Ionicons name="barcode-outline" size={48} color="rgba(255,255,255,0.4)" />
-            </View>
-          )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+            <Ionicons name="close" size={22} color={Colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Scan Barcode</Text>
+          <TouchableOpacity
+            onPress={() => setShowManual(v => !v)}
+            style={styles.manualBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.manualBtnText}>{showManual ? 'Scanner' : 'Manual'}</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.scanHint}>Position barcode within the frame</Text>
-      </View>
 
-      {/* Bottom panel */}
-      <View style={styles.bottomPanel}>
-        <Text style={styles.bottomPanelTitle}>Barcode Scanner</Text>
-        <Text style={styles.bottomPanelSubtitle}>
-          Point your camera at a product barcode to instantly look up nutrition info.
-          Camera access requires device permissions.
-        </Text>
+        {showManual ? (
+          /* Manual barcode entry */
+          <View style={styles.manualContainer}>
+            <View style={styles.manualCard}>
+              <Ionicons name="barcode-outline" size={40} color={Colors.accent} style={{ marginBottom: Spacing.md }} />
+              <Text style={styles.manualTitle}>Enter Barcode</Text>
+              <Text style={styles.manualSubtitle}>
+                Type the barcode number from the product packaging.
+              </Text>
+              <View style={styles.manualInputRow}>
+                <TextInput
+                  style={styles.manualInput}
+                  value={barcodeInput}
+                  onChangeText={setBarcodeInput}
+                  placeholder="e.g. 9300601234567"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="number-pad"
+                  autoFocus
+                  returnKeyType="search"
+                  onSubmitEditing={handleManualSearch}
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.searchBarcodeBtn, loading && styles.btnDisabled]}
+                onPress={handleManualSearch}
+                disabled={loading || !barcodeInput.trim()}
+                activeOpacity={0.85}
+              >
+                {loading ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="search-outline" size={18} color={Colors.white} />
+                    <Text style={styles.searchBarcodeBtnText}>Search Barcode</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            {/* Viewfinder area */}
+            <View style={styles.viewfinder}>
+              <View style={styles.viewfinderInner}>
+                <View style={[styles.corner, styles.topLeft]} />
+                <View style={[styles.corner, styles.topRight]} />
+                <View style={[styles.corner, styles.bottomLeft]} />
+                <View style={[styles.corner, styles.bottomRight]} />
 
-        <TouchableOpacity
-          style={styles.demoScanBtn}
-          onPress={handleDemoScan}
-          activeOpacity={0.85}
-          disabled={loading}
-        >
-          <Ionicons name="scan-outline" size={20} color={Colors.white} />
-          <Text style={styles.demoScanText}>Demo Scan (GYG Burrito)</Text>
-        </TouchableOpacity>
+                {loading ? (
+                  <ActivityIndicator size="large" color={Colors.accent} />
+                ) : (
+                  <View style={styles.scannerIcon}>
+                    <Ionicons name="barcode-outline" size={48} color="rgba(255,255,255,0.3)" />
+                  </View>
+                )}
+              </View>
+              <Text style={styles.scanHint}>Position barcode within the frame</Text>
+            </View>
 
-        <TouchableOpacity
-          style={styles.manualSearchBtn}
-          onPress={() => router.replace('/fuel/add-food')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="search-outline" size={16} color={Colors.accent} />
-          <Text style={styles.manualSearchText}>Search manually instead</Text>
-        </TouchableOpacity>
-      </View>
+            {/* Bottom panel */}
+            <View style={styles.bottomPanel}>
+              <Text style={styles.bottomPanelTitle}>Barcode Scanner</Text>
+              <Text style={styles.bottomPanelSubtitle}>
+                Point your camera at a product barcode to instantly look up nutrition info.
+                Camera requires device permissions on native.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.demoScanBtn, loading && styles.btnDisabled]}
+                onPress={handleDemoScan}
+                activeOpacity={0.85}
+                disabled={loading}
+              >
+                <Ionicons name="scan-outline" size={20} color={Colors.white} />
+                <Text style={styles.demoScanText}>Demo Scan (GYG Burrito)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.manualSearchBtn}
+                onPress={() => router.replace('/fuel/add-food')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="search-outline" size={16} color={Colors.accent} />
+                <Text style={styles.manualSearchText}>Search manually instead</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -298,5 +330,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.accent,
     fontWeight: '600',
+  },
+  manualContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.background,
+  },
+  manualCard: {
+    width: '100%',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  manualTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  manualSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  manualInputRow: {
+    width: '100%',
+    marginBottom: Spacing.md,
+  },
+  manualInput: {
+    backgroundColor: Colors.surfaceRaised,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    fontSize: 18,
+    color: Colors.textPrimary,
+    borderWidth: 1,
+    borderColor: Colors.mutedBorder,
+    textAlign: 'center',
+    letterSpacing: 2,
+    width: '100%',
+  },
+  searchBarcodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.accent,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    width: '100%',
+  },
+  searchBarcodeBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
 });
