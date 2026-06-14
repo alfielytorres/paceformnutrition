@@ -27,13 +27,7 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Paceform to access your camera to scan barcodes."
-        }
-      ]
+      "expo-router"
     ],
     "scheme": "paceform",
     "experiments": {
